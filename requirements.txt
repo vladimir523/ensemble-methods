@@ -1,0 +1,16 @@
+# Backend
+fastapi
+uvicorn[standard]
+scikit-learn
+pandas
+pydantic
+numpy
+joblib
+python-multipart
+typing_extensions
+
+# Frontend
+streamlit
+requests
+plotly
+python-dotenv
