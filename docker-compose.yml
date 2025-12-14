@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # image: Vladimir523/ensembles-monolith:latest
+    image: docker.io/vladimir523/ensembles-monolith:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./runs:/app/runs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SERVICE=backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # image: Vladimir523/ensembles-monolith:latest
+    image: docker.io/vladimir523/ensembles-monolith:latest
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./runs:/app/runs
+    environment:
+      - BASE_URL=http://backend:8000
+      - SERVICE=frontend
+    depends_on:
+      - backend
