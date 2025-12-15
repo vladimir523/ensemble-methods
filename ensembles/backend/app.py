@@ -1,29 +1,26 @@
+import json
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import (
-    FastAPI,
     Body,
-    Query,
-    Path as PathParam,
     File,
+    Path as PathParam,
+    Query,
     UploadFile,
-    HTTPException,
+    FastAPI,
 )
-
-from sklearn.model_selection import train_test_split
-from pydantic import TypeAdapter
-from typing import Annotated
 import pandas as pd
-import json
+from pydantic import TypeAdapter
+from sklearn.model_selection import train_test_split
 
 from .schemas import (
-    ExistingExperimentsResponse,
+    ConvergenceHistoryResponse,
     ExperimentConfig,
     PredictRequest,
     PredictResponse,
-    ConvergenceHistoryResponse,
+    ExistingExperimentsResponse,
 )
-
 from ..boosting import GradientBoostingMSE
 from ..random_forest import RandomForestMSE
 from ..utils import ConvergenceHistory
@@ -34,6 +31,7 @@ app = FastAPI()
 
 
 def get_runs_dir() -> Path:
+    """Gets the directory where experiment artifacts are stored."""
     return Path.cwd() / "runs"
 
 
@@ -60,18 +58,27 @@ async def existing_experiments() -> ExistingExperimentsResponse:
 
 
 def get_experiment_dir(experiment_name: str) -> Path:
+    """Gets the directory for a specific experiment."""
     return get_runs_dir() / experiment_name
 
+
 def get_model_config_path(experiment_name: str) -> Path:
+    """Gets the path to the model configuration file for an experiment."""
     return get_experiment_dir(experiment_name) / "config.json"
 
+
 def get_train_data_path(experiment_name: str) -> Path:
+    """Gets the path to the training data file for an experiment."""
     return get_experiment_dir(experiment_name) / "train.csv"
 
+
 def get_model_dir(experiment_name: str) -> Path:
+    """Gets the directory where the trained model is stored."""
     return get_experiment_dir(experiment_name) / "model"
 
+
 def get_history_path(experiment_name: str) -> Path:
+    """Gets the path to the training history file for an experiment."""
     return get_experiment_dir(experiment_name) / "history.json"
 
 
@@ -79,11 +86,20 @@ def get_history_path(experiment_name: str) -> Path:
 async def register_experiment(
     config: Annotated[ExperimentConfig, Body()]
 ):
+    """
+    Registers a new experiment with the given configuration.
+
+    Args:
+        config (ExperimentConfig): The configuration for the new experiment.
+
+    Returns:
+        dict[str, str]: A message confirming the registration.
+    """
     exp_dir = get_experiment_dir(config.name)
 
     exp_dir.mkdir(parents=True)
 
-    with open(get_model_config_path(config.name), "w") as f:
+    with open(get_model_config_path(config.name), "w", encoding="utf-8") as f:
         f.write(config.model_dump_json(indent=4))
 
     return {"message": f"Experiment '{config.name}' registered successfully."}
@@ -94,6 +110,16 @@ async def upload_train_data(
     experiment_name: Annotated[str, Query()],
     file: Annotated[UploadFile, File(...)]
 ):
+    """
+    Uploads a CSV file with training data for an experiment.
+
+    Args:
+        experiment_name (str): The name of the experiment.
+        file (UploadFile): The CSV file to upload.
+
+    Returns:
+        dict[str, str]: A message confirming the upload.
+    """
     train_path = get_train_data_path(experiment_name)
 
     contents = await file.read()
@@ -103,12 +129,20 @@ async def upload_train_data(
     return {"message": f"File for '{experiment_name}' uploaded successfully."}
 
 
-
 @app.get("/experiment_config/{experiment_name}", response_model=ExperimentConfig)
 async def get_experiment_config(
     experiment_name: Annotated[str, PathParam()]
 ):
-    with open(get_model_config_path(experiment_name), "r") as f:
+    """
+    Retrieves the configuration for a specific experiment.
+
+    Args:
+        experiment_name (str): The name of the experiment.
+
+    Returns:
+        ExperimentConfig: The configuration of the experiment.
+    """
+    with open(get_model_config_path(experiment_name), "r", encoding="utf-8") as f:
         return ExperimentConfig(**json.load(f))
 
 
@@ -116,6 +150,15 @@ async def get_experiment_config(
 async def needs_training(
     experiment_name: Annotated[str, Query()]
 ):
+    """
+    Checks if a model for a given experiment has been trained.
+
+    Args:
+        experiment_name (str): The name of the experiment.
+
+    Returns:
+        dict[str, bool]: A response indicating whether training is needed.
+    """
     model_dir = get_model_dir(experiment_name)
     return {"response": not model_dir.exists()}
 
@@ -124,7 +167,16 @@ async def needs_training(
 async def train_model(
     experiment_name: Annotated[str, Query()]
 ):
-    with open(get_model_config_path(experiment_name), "r") as f:
+    """
+    Trains a model for the specified experiment.
+
+    Args:
+        experiment_name (str): The name of the experiment.
+
+    Returns:
+        dict[str, str]: A message confirming the completion of training.
+    """
+    with open(get_model_config_path(experiment_name), "r", encoding="utf-8") as f:
         config = ExperimentConfig(**json.load(f))
 
     train_data = pd.read_csv(get_train_data_path(experiment_name))
@@ -144,6 +196,7 @@ async def train_model(
     }
     tree_params = {k: v for k, v in tree_params.items() if v is not None}
 
+    model = None
     if config.ml_model == "Random Forest":
         model = RandomForestMSE(n_estimators=config.n_estimators, tree_params=tree_params)
 
@@ -157,13 +210,13 @@ async def train_model(
     history = model.fit(
         X_train.values, y_train.values,
         X_val.values, y_val.values,
-        trace=True #, patience=10
+        trace=True
     )
 
     model.dump(get_model_dir(experiment_name))
 
     if history and history.get("train") and len(history["train"]) > 0:
-        with open(get_history_path(experiment_name), "w") as f:
+        with open(get_history_path(experiment_name), "w", encoding="utf-8") as f:
             hist_bytes = TypeAdapter(ConvergenceHistory).dump_json(history)
             f.write(hist_bytes.decode("utf-8"))
 
@@ -174,9 +227,18 @@ async def train_model(
 async def get_convergence_history(
     experiment_name: Annotated[str, Query()]
 ):
+    """
+    Retrieves the convergence history for a given experiment.
+
+    Args:
+        experiment_name (str): The name of the experiment.
+
+    Returns:
+        ConvergenceHistoryResponse: The training and validation loss history.
+    """
     path = get_history_path(experiment_name)
 
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         content = f.read()
 
         if not content.strip():
@@ -191,7 +253,18 @@ async def predict(
     experiment_name: Annotated[str, Query()],
     request: Annotated[PredictRequest, Body()]
 ):
-    with open(get_model_config_path(experiment_name), "r") as f:
+    """
+    Makes predictions using the trained model of the specified experiment.
+
+    Args:
+        experiment_name (str): The name of the experiment.
+        request (PredictRequest): The request containing test data.
+
+    Returns:
+        PredictResponse: The response containing the predictions.
+    """
+    model = None
+    with open(get_model_config_path(experiment_name), "r", encoding="utf-8") as f:
         config = ExperimentConfig(**json.load(f))
 
     if config.ml_model == "Random Forest":

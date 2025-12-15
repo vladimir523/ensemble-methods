@@ -1,7 +1,7 @@
 from typing import Any
 
 import numpy.typing as npt
-import requests 
+import requests
 import pandas as pd
 
 from ensembles.backend.schemas import PredictResponse, ExperimentConfig, ConvergenceHistoryResponse
@@ -54,7 +54,6 @@ class Client:
         )
         response.raise_for_status()
 
-
     def load_experiment_config(self, experiment_name) -> dict[str, Any]:
         """
         Loads the configuration of an existing experiment.
@@ -66,7 +65,7 @@ class Client:
             ExperimentConfig: The configuration of the experiment.
         """
         response = self.session.get(f"{self.base_url}/experiment_config/{experiment_name}")
-        
+
         return ExperimentConfig(**response.json())
 
     def is_training_needed(self, experiment_name) -> bool:
@@ -75,7 +74,7 @@ class Client:
 
         Args:
             experiment_name (Any): The name of the experiment.
-        
+
         Returns:
             bool: indicator was the model ever trained.
         """
@@ -105,17 +104,17 @@ class Client:
         Returns:
             ConvergenceHistory: The convergence history of the experiment.
         """
-        
-        response = self.session.get(f"{self.base_url}/convergence_history/", params={"experiment_name": experiment_name})
-        response.raise_for_status()
 
-        history_obj = ConvergenceHistoryResponse(**response.json())
+        resp = self.session.get(f"{self.base_url}/convergence_history/", params={"experiment_name": experiment_name})
+        resp.raise_for_status()
+
+        history_obj = ConvergenceHistoryResponse(**resp.json())
 
         if history_obj.val is None:
             history_obj.val = [float('inf')] * len(history_obj.train)
-            
+
         return history_obj
-   
+
     def predict(self, experiment_name, test_file) -> npt.NDArray[Any]:
         """
         Makes predictions using the trained model of the specified experiment.
@@ -130,13 +129,13 @@ class Client:
 
         test_df = pd.read_csv(test_file)
         request_payload = {"data": test_df.to_dict(orient="records")}
-        
+
         response = self.session.post(
-            f"{self.base_url}/predict/", 
+            f"{self.base_url}/predict/",
             params={"experiment_name": experiment_name},
             json=request_payload
         )
         response.raise_for_status()
-        
+
         predict_response = PredictResponse(**response.json())
         return pd.Series(predict_response.predictions)

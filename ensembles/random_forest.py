@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 from sklearn.tree import DecisionTreeRegressor
 
-from .utils import ConvergenceHistory, rmsle, whether_to_stop
+from ensembles.utils import ConvergenceHistory, rmsle, whether_to_stop
 
 
 class RandomForestMSE:
@@ -17,7 +17,8 @@ class RandomForestMSE:
         """
         Handmade random forest regressor.
 
-        Classic ML algorithm that trains a set of independent tall decision trees and averages its predictions. Employs scikit-learn `DecisionTreeRegressor` under the hood.
+        Classic ML algorithm that trains a set of independent tall decision trees and averages its predictions. 
+        Employs scikit-learn `DecisionTreeRegressor` under the hood.
 
         Args:
             n_estimators (int): Number of trees in the forest.
@@ -45,15 +46,20 @@ class RandomForestMSE:
         Args:
             X (npt.NDArray[np.float64]): Objects features matrix, array of shape (n_objects, n_features).
             y (npt.NDArray[np.float64]): Regression labels, array of shape (n_objects,).
-            X_val (npt.NDArray[np.float64] | None, optional): Validation set of objects, array of shape (n_val_objects, n_features). Defaults to None.
-            y_val (npt.NDArray[np.float64] | None, optional): Validation set of labels, array of shape (n_val_objects,). Defaults to None.
-            trace (bool | None, optional): Whether to calculate rmsle while training. True by default if validation data is provided. Defaults to None.
-            patience (int | None, optional): Number of training steps without decreasing the train loss (or validation if provided), after which to stop training. Defaults to None.
+            X_val (npt.NDArray[np.float64] | None, optional): Validation set of objects, array of shape
+            (n_val_objects, n_features). Defaults to None.
+            y_val (npt.NDArray[np.float64] | None, optional): Validation set of labels, array of shape
+            (n_val_objects,). Defaults to None.
+            trace (bool | None, optional): Whether to calculate rmsle while training. 
+            True by default if validation data is provided. Defaults to None.
+            patience (int | None, optional): Number of training steps without decreasing the train loss
+            (or validation if provided), after which to stop training. Defaults to None.
 
         Returns:
-            ConvergenceHistory | None: Instance of `ConvergenceHistory` if `trace=True` or if validation data is provided.
+            ConvergenceHistory | None: Instance of `ConvergenceHistory` if `trace=True` or if validation data 
+            is provided.
         """
-        
+
         if trace is None:
             trace = X_val is not None and y_val is not None
 
@@ -61,7 +67,7 @@ class RandomForestMSE:
         y_val_log = np.log1p(y_val) if y_val is not None else None
 
         history: ConvergenceHistory | None = None
-        if trace: 
+        if trace:
             history = {'train': [], 'val': [] if X_val is not None else None}
 
         n_objects = X.shape[0]
@@ -97,7 +103,6 @@ class RandomForestMSE:
                     break
 
         return history
-
 
     def predict(self, X: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """
