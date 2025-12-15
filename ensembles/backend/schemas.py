@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from typing import Optional
-import numpy as np
 from pydantic import BaseModel, field_validator
 
 
@@ -23,16 +22,19 @@ class ExistingExperimentsResponse(BaseModel):
 
 class ExperimentConfig(BaseModel):
     name: str
-    ml_model: str  
+    ml_model: str
     n_estimators: int
     max_depth: int
-    max_features: Any  
+    max_features: Any
     target_column: str
     learning_rate: float = 0.1
 
     @field_validator('max_features', mode='before')
     @classmethod
     def parse_max_features(cls, v):
+        """
+        Validates the 'max_features' parameter
+        """
         return v
 
 

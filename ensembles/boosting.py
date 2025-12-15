@@ -7,7 +7,8 @@ import numpy as np
 import numpy.typing as npt
 from sklearn.tree import DecisionTreeRegressor
 
-from .utils import ConvergenceHistory, rmsle, whether_to_stop
+from ensembles.utils import ConvergenceHistory, rmsle, whether_to_stop
+
 
 class GradientBoostingMSE:
     const_prediction: float
@@ -28,7 +29,8 @@ class GradientBoostingMSE:
         Args:
             n_estimators (int): Number of trees to boost each other.
             tree_params (dict[str, Any] | None, optional): Parameters for the decision trees. Defaults to None.
-            learning_rate (float, optional): Scaling factor for the "gradient" step (the weight applied to each tree prediction). Defaults to 0.1.
+            learning_rate (float, optional): Scaling factor for the "gradient" step (the weight applied to each 
+            tree prediction). Defaults to 0.1.
         """
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
@@ -53,13 +55,18 @@ class GradientBoostingMSE:
         Args:
             X (npt.NDArray[np.float64]): Objects features matrix, array of shape (n_objects, n_features).
             y (npt.NDArray[np.float64]): Regression labels, array of shape (n_objects,).
-            X_val (npt.NDArray[np.float64] | None, optional): Validation set of objects, array of shape (n_val_objects, n_features). Defaults to None.
-            y_val (npt.NDArray[np.float64] | None, optional): Validation set of labels, array of shape (n_val_objects,). Defaults to None.
-            trace (bool | None, optional): Whether to calculate RMSLE while training. True by default if validation data is provided. Defaults to None.
-            patience (int | None, optional): Number of training steps without decreasing the train loss (or validation if provided), after which to stop training. Defaults to None.
+            X_val (npt.NDArray[np.float64] | None, optional): Validation set of objects, array of shape
+            (n_val_objects, n_features). Defaults to None.
+            y_val (npt.NDArray[np.float64] | None, optional): Validation set of labels, array of shape
+            (n_val_objects,). Defaults to None.
+            trace (bool | None, optional): Whether to calculate RMSLE while training.
+            True by default if validation data is provided. Defaults to None.
+            patience (int | None, optional): Number of training steps without decreasing the train loss
+            (or validation if provided), after which to stop training. Defaults to None.
 
         Returns:
-            ConvergenceHistory | None: Instance of `ConvergenceHistory` if `trace=True` or if validation data is provided.
+            ConvergenceHistory | None: Instance of `ConvergenceHistory` if `trace=True` or if validation data
+            is provided.
         """
 
         if trace is None:
@@ -116,7 +123,7 @@ class GradientBoostingMSE:
         Returns:
             npt.NDArray[np.float64]: Predicted values, array of shape (n_objects,).
         """
-        
+
         preds_log = np.full(X.shape[0], self.const_prediction, dtype=np.float64)
 
         for tree in self.forest:
@@ -124,7 +131,6 @@ class GradientBoostingMSE:
                 preds_log += self.learning_rate * tree.predict(X)
 
         return np.expm1(preds_log)
-
 
     def dump(self, dirpath: str) -> None:
         """

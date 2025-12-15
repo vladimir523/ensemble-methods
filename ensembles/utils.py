@@ -1,4 +1,4 @@
-from typing_extensions import TypedDict 
+from typing_extensions import TypedDict
 
 import numpy as np
 import numpy.typing as npt
@@ -71,19 +71,19 @@ def whether_to_stop(convergence_history: ConvergenceHistory, patience: int) -> b
     KeyError
         If neither 'train' nor 'val' key is present in the convergence_history.
     """
-    
+
     if 'val' in convergence_history and convergence_history['val'] is not None:
         history = convergence_history['val']
     elif 'train' in convergence_history:
         history = convergence_history['train']
     else:
         raise KeyError("Neither 'train' nor 'val' key is present in the convergence_history.")
-    
+
     if len(history) <= patience:
         return False
-    
+
     best_loss = min(history[:-patience])
-    
+
     recent_losses = history[-patience:]
 
     return all(loss >= best_loss for loss in recent_losses)
