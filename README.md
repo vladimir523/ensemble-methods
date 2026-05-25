@@ -16,7 +16,7 @@ sudo apt install -y docker-compose-plugin
 1.  Клонируйте репозиторий:
     ```bash
     git clone https://github.com/vladimir523/ensemble-methods.git
-    cd ensemble-method
+    cd ensemble-methods
     ```
 
 2.  Запустите приложение:
@@ -33,7 +33,7 @@ sudo apt install -y docker-compose-plugin
 1.  Клонируйте репозиторий:
     ```bash
     git clone https://github.com/vladimir523/ensemble-methods.git
-    cd ensemble-method
+    cd ensemble-methods
     ```
 
 2.  Соберите и запустите контейнеры:
